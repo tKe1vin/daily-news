@@ -1,0 +1,41 @@
+name: Daily Stock News Crawler
+
+on:
+  schedule:
+    # GitHub 的時間是 UTC，台灣時間下午 14:00 等於 UTC 早上 6:00
+    - cron: '0 6 * * *'
+  workflow_dispatch: # 讓你可以手動點擊按鈕執行測試
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    # 給予機器人寫入專案的權限 (才能更新 CSV)
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install Dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Run Crawler & FinBERT
+      run: |
+        python daily_crawler.py
+
+    - name: Commit and Push changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action Bot"
+        git add sentiment_features_2026.csv
+        # 加上 || echo "No changes to commit" 避免週末沒新聞時報錯
+        git commit -m "Auto-update daily sentiment scores" || echo "No changes to commit"
+        git push
